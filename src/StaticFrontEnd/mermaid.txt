@@ -1,0 +1,29 @@
+sequenceDiagram
+    autonumber
+    participant FE as Frontend (Browser)
+    participant BE as Backend API
+    participant IA as Integration API
+
+    Note over FE: Start Root Span<br/>(Page Load)
+
+    FE->>+BE: POST /api/observability
+    Note right of FE: headers: traceparent,<br/>tracestate
+
+    Note right of BE: Extract Trace Context<br/>Start Server Span
+
+    BE->>+IA: GET /partners/profile
+    Note left of BE: propagate traceparent
+
+    Note right of IA: Extract Context<br/>Start Child Span
+
+    IA-->>-BE: 200 OK
+    Note left of IA: spans: db.query,<br/>cache.get
+
+    BE-->>-FE: 202 Accepted
+    Note left of BE: span: http.server
+
+    Note over FE: Root Span ends<br/>Correlate with timing
+
+    rect rgba(102,126,234,0.1)
+    Note over FE,IA: All spans share same trace-id<br/>Each hop creates child span
+    end

@@ -1,0 +1,51 @@
+# otel-config.yaml
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 100ms      # Very short timeout for POC
+    send_batch_size: 1  # Send every single span immediately
+    send_batch_max_size: 1
+
+  memory_limiter:
+    limit_mib: 256
+    check_interval: 1s    
+
+exporters:
+  otlp/data-prepper:
+    endpoint: http://data-prepper:21890
+    tls:
+      insecure: true
+      insecure_skip_verify: true
+  otlp/data-prepper-metrics:
+    endpoint: http://data-prepper:21891  # Different port!
+    tls:
+      insecure: true
+      insecure_skip_verify: true
+
+  debug:
+    verbosity: detailed
+    sampling_initial: 5     # Show more debug info
+    sampling_thereafter: 5
+
+service:
+  telemetry:
+    logs:
+      level: "info"  # Enable debug logging
+  pipelines:
+    traces:  # This is the key pipeline for your spans
+      receivers: [otlp]
+      processors: [batch, memory_limiter]
+      exporters: [debug, otlp/data-prepper]  # Debug first to see what's being sent
+    
+    # Separate metrics pipeline  
+    metrics:
+      receivers: [otlp]
+      processors: [batch, memory_limiter]
+      exporters: [debug, otlp/data-prepper-metrics]

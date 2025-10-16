@@ -1,0 +1,75 @@
+entry-traces-pipeline:
+  delay: "100"
+  source:
+    otel_trace_source:
+      ssl: false
+  sink:
+    - pipeline:
+        name: "raw-pipeline"
+    - pipeline:
+        name: "service-map-pipeline"
+
+raw-pipeline:
+  source:
+    pipeline:
+      name: "entry-traces-pipeline"
+  processor:
+    - otel_traces:
+  sink:
+    - opensearch:
+        hosts: ["http://opensearch-plana:9200"]
+        username: "admin"
+        password: "PleaseChangeThisPassword2025!"
+        index_type: trace-analytics-raw
+        max_retries: 20
+        bulk_size: 4
+    - stdout:
+
+service-map-pipeline:
+  delay: "100"
+  source:
+    pipeline:
+      name: "entry-traces-pipeline"
+  processor:
+    - service_map:
+  sink:
+    - opensearch:
+        hosts: ["http://opensearch-plana:9200"]
+        username: "admin"
+        password: "PleaseChangeThisPassword2025!"
+        index_type: trace-analytics-service-map
+        max_retries: 20
+        bulk_size: 4
+    - stdout:
+    
+# ------------------- RAW METRICS ----------------------
+entry-metrics-pipeline:
+  delay: "100"
+  source:
+    otel_metrics_source:
+      ssl: false
+      port: 21891  # Use a different port for metrics!
+  sink:
+    - pipeline:
+        name: "raw-metrics-pipeline"
+
+raw-metrics-pipeline:
+  source:
+    pipeline:
+      name: "entry-metrics-pipeline"
+  processor:
+    - otel_metrics:
+        calculate_histogram_buckets: true
+        calculate_exponential_histogram_buckets: true
+        exponential_histogram_max_allowed_scale: 10
+        flatten_attributes: false
+  sink:
+    - opensearch:
+        hosts: ["http://opensearch-plana:9200"]
+        username: "admin"
+        password: "PleaseChangeThisPassword2025!"
+        index_type: management_disabled
+        index: ss4o_metrics-%{yyyy.MM.dd}
+        max_retries: 20
+        bulk_size: 4
+    - stdout:

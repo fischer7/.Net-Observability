@@ -1,0 +1,1915 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Designing for Observability</title>
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <style>
+      /* ===== BASE RESET ===== */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* ===== BODY & LAYOUT ===== */
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        overflow: hidden;
+      }
+
+      .presentation {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* ===== SLIDES ===== */
+      .slide {
+        width: 90%;
+        max-width: 1200px;
+        height: 85vh;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        padding: 60px;
+        display: none;
+        flex-direction: column;
+        position: relative;
+        animation: slideIn 0.5s ease-out;
+        overflow-y: auto;
+      }
+
+      .slide.active {
+        display: flex;
+      }
+
+      .slide.slide-out-left {
+        animation: slideOut 0.4s ease-out;
+      }
+
+      .slide.slide-in-right {
+        animation: slideInRight 0.4s ease-out;
+      }
+
+      .slide-number {
+        position: fixed;
+        bottom: 20px;
+        right: 30px;
+        color: #999;
+        font-size: 14px;
+        background: white;
+        padding: 8px 12px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+      }
+
+      /* ===== ANIMATIONS ===== */
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes slideOut {
+        from {
+          opacity: 1;
+          transform: translateX(0);
+        }
+        to {
+          opacity: 0;
+          transform: translateX(-30px);
+        }
+      }
+
+      @keyframes slideInRight {
+        from {
+          opacity: 0;
+          transform: translateX(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      /* ===== TYPOGRAPHY ===== */
+      h1 {
+        font-size: 56px;
+        color: #667eea;
+        margin-bottom: 20px;
+        font-weight: 700;
+      }
+
+      h2 {
+        font-size: 42px;
+        color: #333;
+        margin-bottom: 30px;
+        font-weight: 600;
+      }
+
+      .subtitle {
+        font-size: 24px;
+        color: #666;
+        margin-bottom: 20px;
+      }
+
+      .author-info {
+        font-size: 18px;
+        color: #555;
+        margin-bottom: 10px;
+      }
+
+      .author-title {
+        font-size: 16px;
+        color: #777;
+        font-style: italic;
+      }
+
+      label {
+        font-size: 32px;
+        color: #333;
+        font-weight: 500;
+      }
+
+      /* ===== CONTENT AREAS ===== */
+      .content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      /* ===== BLACK BOX DIAGRAM ===== */
+      .black-box-diagram {
+        width: 100%;
+        max-width: 800px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 40px;
+        margin: 40px auto;
+      }
+
+      .arrow {
+        width: 100px;
+        height: 0;
+        border-top: 3px solid #999;
+        position: relative;
+      }
+
+      .arrow::after {
+        content: '';
+        position: absolute;
+        right: -10px;
+        top: -8px;
+        width: 0;
+        height: 0;
+        border-left: 15px solid #999;
+        border-top: 8px solid transparent;
+        border-bottom: 8px solid transparent;
+      }
+
+      .black-box {
+        width: 280px;
+        height: 280px;
+        background: linear-gradient(145deg, #1a1a1a, #000000);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+        transform-style: preserve-3d;
+        transition: all 0.4s ease;
+      }
+
+      .black-box:hover {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+      }
+
+      .black-box::before {
+        content: '';
+        position: absolute;
+        top: -12px;
+        right: -12px;
+        width: 280px;
+        height: 280px;
+        background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+        border-radius: 8px;
+        transform: translateZ(-20px);
+        z-index: -1;
+        transition: all 0.4s ease;
+      }
+
+      .black-box:hover::before {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .black-box::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: -12px;
+        width: 12px;
+        height: 280px;
+        background: linear-gradient(to right, #1a1a1a, #2a2a2a);
+        transform-origin: left;
+        transform: skewY(-45deg);
+        transition: all 0.4s ease;
+      }
+
+      .black-box:hover::after {
+        background: linear-gradient(to right, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+      }
+
+      .box-top {
+        position: absolute;
+        top: -12px;
+        left: 0;
+        width: 280px;
+        height: 12px;
+        background: linear-gradient(to bottom, #2a2a2a, #1a1a1a);
+        transform-origin: bottom;
+        transform: skewX(-45deg);
+        transition: all 0.4s ease;
+      }
+
+      .black-box:hover .box-top {
+        background: linear-gradient(to bottom, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.1));
+      }
+
+      .black-box-text {
+        color: white;
+        font-size: 24px;
+        font-weight: 600;
+        text-align: center;
+        line-height: 1.4;
+        z-index: 1;
+        transition: all 0.4s ease;
+      }
+
+      .black-box:hover .black-box-text {
+        color: #667eea;
+        text-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+      }
+
+      /* ===== HIGHLIGHT BOX ===== */
+      .highlight-box {
+        background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+        border-left: 4px solid #667eea;
+        padding: 25px;
+        border-radius: 8px;
+        margin: 20px 0;
+      }
+
+      .highlight-box p {
+        font-size: 18px;
+        color: #333;
+        line-height: 1.7;
+        margin: 0;
+      }
+
+      /* ===== CARDS ===== */
+      .pillar-card {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border-radius: 15px;
+        padding: 30px;
+        margin: 15px 0;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .pillar-card:hover {
+        transform: translateX(10px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      }
+
+      .pillar-card h3 {
+        font-size: 28px;
+        color: #667eea;
+        margin-bottom: 10px;
+      }
+
+      .pillar-card p {
+        font-size: 18px;
+        color: #555;
+        line-height: 1.6;
+      }
+
+      .card {
+        background: white;
+        border: 2px solid #667eea;
+        border-radius: 12px;
+        padding: 25px;
+        text-align: center;
+        transition: all 0.3s ease;
+      }
+
+      .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.2);
+      }
+
+      .card h3 {
+        font-size: 24px;
+        color: #333;
+        margin-bottom: 10px;
+      }
+
+      .card p {
+        font-size: 16px;
+        color: #666;
+        line-height: 1.5;
+      }
+
+      .icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+      }
+
+      .requirement-box {
+        background: white;
+        border: 2px solid #667eea;
+        border-radius: 12px;
+        padding: 20px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+
+      .requirement-box:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.2);
+      }
+
+      .requirement-box img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-bottom: 15px;
+      }
+
+      .requirement-box h3 {
+        font-size: 22px;
+        color: #333;
+        margin-bottom: 10px;
+      }
+
+      .requirement-box p {
+        font-size: 16px;
+        color: #666;
+        line-height: 1.5;
+      }
+
+      /* ===== GRIDS ===== */
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 30px;
+        margin-top: 20px;
+      }
+
+      .requirements-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 25px;
+        margin-top: 20px;
+      }
+
+      /* ===== NAVIGATION ===== */
+      .nav-buttons {
+        position: absolute;
+        bottom: 30px;
+        left: 30px;
+        display: flex;
+        gap: 15px;
+      }
+
+      button {
+        padding: 12px 24px;
+        font-size: 16px;
+        border: none;
+        background: #667eea;
+        color: white;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+      }
+
+      button:hover {
+        background: #764ba2;
+        transform: scale(1.05);
+      }
+
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: scale(1);
+      }
+
+      /* ===== LISTS ===== */
+      ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      li {
+        font-size: 20px;
+        color: #555;
+        margin: 15px 0;
+        padding-left: 40px;
+        position: relative;
+        line-height: 1.6;
+      }
+
+      .expandable-item {
+        cursor: pointer;
+        transition: color 0.3s ease;
+      }
+
+      .expandable-item:hover {
+        color: #667eea;
+      }
+
+      .expandable-item:before {
+        content: "▸";
+        position: absolute;
+        left: 0;
+        color: #667eea;
+        font-weight: bold;
+        transition: transform 0.3s ease;
+      }
+
+      .expandable-item.expanded:before {
+        transform: rotate(90deg);
+      }
+
+      .expandable-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s ease, margin-top 0.4s ease;
+        padding-left: 20px;
+        margin-top: 0;
+      }
+
+      .expandable-content.show {
+        max-height: 1200px;
+        margin-top: 10px;
+      }
+
+      .expandable-content p {
+        font-size: 17px;
+        color: #666;
+        line-height: 1.6;
+        margin: 8px 0;
+      }
+
+      .expandable-content img {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 15px 0;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        background: white;
+        padding: 10px;
+        object-fit: contain;
+      }
+
+      /* ===== RESOURCES ===== */
+      .resource-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        margin: 8px 8px 8px 0;
+      }
+
+      .resource-link:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+      }
+
+      .resource-link::after {
+        content: "→";
+        font-size: 18px;
+      }
+
+      .resources-container {
+        display: flex;
+        flex-wrap: wrap;
+        margin-top: 20px;
+        gap: 5px;
+      }
+
+      /* ===== MOBILE RESPONSIVENESS ===== */
+      @media (max-width: 768px) {
+        /* Layout */
+        .slide {
+          width: 95%;
+          height: 90vh;
+          padding: 30px 20px;
+          border-radius: 15px;
+        }
+
+        .slide-number {
+          bottom: 70px;
+          right: 15px;
+          font-size: 12px;
+          padding: 6px 10px;
+        }
+
+        /* Typography */
+        h1 {
+          font-size: 32px;
+          margin-bottom: 15px;
+        }
+
+        h2 {
+          font-size: 28px;
+          margin-bottom: 20px;
+        }
+
+        .subtitle {
+          font-size: 18px;
+          margin-bottom: 15px;
+        }
+
+        .author-info {
+          font-size: 16px;
+        }
+
+        .author-title {
+          font-size: 14px;
+        }
+
+        label {
+          font-size: 24px;
+        }
+
+        /* Black Box Diagram */
+        .black-box-diagram {
+          flex-direction: column;
+          gap: 30px;
+        }
+
+        .arrow {
+          width: 60px;
+          transform: rotate(90deg);
+        }
+
+        .black-box {
+          width: 200px;
+          height: 200px;
+        }
+
+        .black-box::before {
+          width: 200px;
+          height: 200px;
+          top: -10px;
+          right: -10px;
+        }
+
+        .black-box::after {
+          width: 10px;
+          height: 200px;
+          right: -10px;
+        }
+
+        .box-top {
+          width: 200px;
+          height: 10px;
+          top: -10px;
+        }
+
+        .black-box-text {
+          font-size: 18px;
+        }
+
+        /* Highlight Box */
+        .highlight-box {
+          padding: 18px;
+          margin: 15px 0;
+        }
+
+        .highlight-box p {
+          font-size: 15px;
+        }
+
+        /* Cards */
+        .pillar-card {
+          padding: 20px;
+          margin: 10px 0;
+        }
+
+        .pillar-card:hover {
+          transform: translateX(5px);
+        }
+
+        .pillar-card h3 {
+          font-size: 22px;
+        }
+
+        .pillar-card p {
+          font-size: 16px;
+        }
+
+        .card {
+          padding: 20px;
+        }
+
+        .card h3 {
+          font-size: 20px;
+        }
+
+        .card p {
+          font-size: 14px;
+        }
+
+        .icon {
+          font-size: 36px;
+          margin-bottom: 10px;
+        }
+
+        .requirement-box {
+          padding: 15px;
+        }
+
+        .requirement-box img {
+          height: 150px;
+        }
+
+        .requirement-box h3 {
+          font-size: 18px;
+        }
+
+        .requirement-box p {
+          font-size: 14px;
+        }
+
+        /* Grids */
+        .grid {
+          grid-template-columns: 1fr;
+          gap: 15px;
+          margin-top: 15px;
+        }
+
+        .requirements-grid {
+          grid-template-columns: 1fr;
+          gap: 15px;
+        }
+
+        /* Navigation */
+        .nav-buttons {
+          position: fixed;
+          bottom: 15px;
+          left: 50%;
+          transform: translateX(-50%);
+          gap: 10px;
+          z-index: 1000;
+        }
+
+        button {
+          padding: 10px 20px;
+          font-size: 14px;
+        }
+
+        /* Lists */
+        li {
+          font-size: 16px;
+          padding-left: 30px;
+          margin: 12px 0;
+        }
+
+        .expandable-content p {
+          font-size: 14px;
+        }
+
+        .expandable-content img {
+          margin: 10px 0;
+          padding: 8px;
+        }
+
+        /* Resources */
+        .resource-link {
+          font-size: 13px;
+          padding: 8px 14px;
+          margin: 5px 5px 5px 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="presentation">
+      <!-- Slide 1: Title -->
+      <div class="slide active">
+        <div class="content">
+          <h1>Designing for Observability</h1>
+          <div class="subtitle">Metrics, Logs, and Traces</div>
+          <div class="highlight-box">
+            <p>
+              Understanding the three pillars of modern system observability
+            </p>
+          </div>
+          <div style="margin-top: 30px">
+            <div class="author-info">Felipe Fischer</div>
+            <div class="author-title">
+              Senior Software Developer at Plan A Technologies
+            </div>
+          </div>
+        </div>
+        <div class="slide-number">1 / 12</div>
+      </div>
+
+      <!-- Slide 2: What is Observability -->
+      <div class="slide">
+        <h2>What is Observability?</h2>
+        <div class="content">
+          <div class="highlight-box">
+            <p>
+              <strong>Observability</strong> is the ability to understand the
+              internal state of a system by examining its external outputs.
+            </p>
+          </div>
+          <ul>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              Goes beyond traditional monitoring
+              <div class="expandable-content">
+                <p>
+                  Traditional monitoring tells you when something is wrong.
+                  Observability tells you why it's wrong and helps you
+                  understand complex system behaviors you never anticipated.
+                </p>
+              </div>
+            </li>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              Enables understanding of system behavior in production
+              <div class="expandable-content">
+                <p>
+                  Production environments are unpredictable. Observability gives
+                  you the ability to explore and debug issues in real-time
+                  without needing to reproduce them in test environments.
+                </p>
+              </div>
+            </li>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              Helps answer questions you didn't know to ask
+              <div class="expandable-content">
+                <p>
+                  Instead of predefined dashboards and alerts, observability
+                  allows you to ask arbitrary questions about your system's
+                  behavior and get answers through rich telemetry data.
+                </p>
+              </div>
+            </li>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              Critical for distributed systems and microservices
+              <div class="expandable-content">
+                <p>
+                  As systems become more distributed, understanding how requests
+                  flow across services becomes essential. Observability provides
+                  the visibility needed to manage this complexity.
+                </p>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="slide-number">2 / 12</div>
+      </div>
+
+      <!-- Slide 3: Why Observe? -->
+      <div class="slide">
+        <h2>Why Observe? 👁️</h2>
+        <div class="content">
+          <div class="black-box-diagram">
+            <div class="label">Input</div>
+            <div class="arrow"></div>
+            <div class="black-box">
+              <div class="box-top"></div>
+              <div class="black-box-text">Software<br />Application</div>
+            </div>
+            <div class="arrow"></div>
+            <div class="label">Output</div>
+          </div>
+
+          <div class="highlight-box">
+            <p>
+              Without observability, our applications are black boxes. We see
+              inputs and outputs, but we don't understand what's happening
+              inside. This makes debugging and optimization nearly impossible in
+              complex/distributed systems.
+            </p>
+          </div>
+        </div>
+        <div class="slide-number">3 / 12</div>
+      </div>
+      <!-- Slide 4: Requirements -->
+      <div class="slide">
+        <h2>Presentation Requirements</h2>
+        <div class="content">
+          <div class="highlight-box">
+            <p>
+              Basic Essential components used in this presentation.
+              <a
+                href="https://github.com/fischer7/.Net-Observability"
+                target="_blank"
+                class="resource-link"
+                >Today's Presentation code</a
+              >
+            </p>
+          </div>
+          <div class="requirements-grid">
+            <div class="requirement-box">
+              <a
+                href="https://dotnet.microsoft.com/en-us/apps/aspnet"
+                target="_blank"
+                ><img src="aspnetcore.jpg" alt="Data Storage"
+              /></a>
+              <h3>AspNet Core</h3>
+              <p>
+                AspNet Core application instrumented with OpenTelemetry.
+                OpenTelemetry is a set of APIs, SDKs, and tools that enable
+                instrumentation of applications to collect telemetry data.
+              </p>
+            </div>
+            <div class="requirement-box">
+              <a
+                href="https://docs.opensearch.org/1.3/dashboards/quickstart-dashboards/"
+                target="_blank"
+                ><img src="opensearch.png" alt="Monitoring Dashboard"
+              /></a>
+              <h3>OpenSearch & OpenSearch Dashboards</h3>
+              <p>
+                Robust and scalable search and analytics engine for log data.
+                OpenSearch is also a NoSQL database that supports a wide range
+                of data models and queries.
+              </p>
+            </div>
+            <div class="requirement-box">
+              <a href="https://opentelemetry.io/" target="_blank"
+                ><img src="opentelemetry.png" alt="Instrumentation"
+              /></a>
+              <h3>OpenTelemetry Collector</h3>
+              <p>
+                A distributed tracing and metrics collection agent that can be
+                deployed on-premises or in the cloud.
+              </p>
+            </div>
+            <div class="requirement-box">
+              <a
+                href="https://docs.opensearch.org/latest/data-prepper/getting-started/"
+                target="_blank"
+                ><img src="dataprepper.png" alt="Team Collaboration"
+              /></a>
+              <h3>Data Prepper</h3>
+              <p>
+                A data processing pipeline that ingests, transforms, and
+                enriches data from multiple sources, and stores it in a
+                time-series database.
+                <a
+                  href="https://docs.opensearch.org/latest/data-prepper/common-use-cases/trace-analytics/"
+                  >OpenSearch DataPrepper Introduction</a
+                >
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="slide-number">4 / 12</div>
+      </div>
+
+      <!-- Slide 5: What to Watch -->
+      <div class="slide">
+        <h2>Determining What to Watch</h2>
+        <div class="content">
+          <div class="highlight-box">
+            <p>
+              Not everything should be observed. Strategic instrumentation is
+              key to effective observability.
+            </p>
+          </div>
+          <ul>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              Focus on critical business metrics
+              <div class="expandable-content">
+                <p>
+                  <strong>Golden Signals:</strong> Latency, traffic, errors, and
+                  saturation
+                </p>
+                <p>
+                  <strong>Business KPIs:</strong> User conversions, transaction
+                  success rates, revenue-impacting events
+                </p>
+                <p>
+                  <strong>User Experience:</strong> Page load times, API
+                  response times, feature usage
+                </p>
+              </div>
+            </li>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              Watch service boundaries and dependencies
+              <div class="expandable-content">
+                <p>
+                  Monitor all external integrations (databases, APIs, message
+                  queues), inter-service communication patterns, and third-party
+                  service dependencies to understand failure points.
+                </p>
+              </div>
+            </li>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              Resource utilization and capacity
+              <div class="expandable-content">
+                <p>
+                  Track CPU, memory, disk I/O, network throughput, connection
+                  pools, thread pools, and queue depths to predict scaling needs
+                  and prevent resource exhaustion.
+                </p>
+              </div>
+            </li>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              Avoid observability fatigue
+              <div class="expandable-content">
+                <p>
+                  Too much data creates noise. Prioritize high-value signals,
+                  use sampling for high-volume data, and implement intelligent
+                  aggregation to keep costs and complexity manageable.
+                </p>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="slide-number">5 / 12</div>
+      </div>
+
+      <!-- Slide 6: Data Privacy & Security -->
+      <div class="slide">
+        <h2>What to Obfuscate & Store</h2>
+        <div class="content">
+          <div class="highlight-box">
+            <p>
+              Observability must respect privacy and security requirements while
+              maintaining utility.
+            </p>
+          </div>
+          <ul>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              Always obfuscate sensitive data
+              <div class="expandable-content">
+                <p>
+                  <strong>PII:</strong> Names, emails, addresses, phone numbers,
+                  SSNs
+                </p>
+                <p>
+                  <strong>Credentials:</strong> Passwords, API keys, tokens,
+                  certificates
+                </p>
+                <p>
+                  <strong>Financial:</strong> Credit card numbers, bank
+                  accounts, transaction details
+                </p>
+                <p>
+                  <strong>Health:</strong> Medical records, diagnoses (HIPAA
+                  compliance)
+                </p>
+              </div>
+            </li>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              Use redaction and hashing techniques
+              <div class="expandable-content">
+                <p>
+                  Replace sensitive values with placeholders (***), hash
+                  identifiers for correlation without exposing raw data,
+                  truncate or mask partial data (last 4 digits only).
+                </p>
+              </div>
+            </li>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              Safe to store (when properly sanitized)
+              <div class="expandable-content">
+                <p>
+                  <strong>Technical data:</strong> User IDs (hashed), request
+                  IDs, timestamps, HTTP status codes, error types
+                </p>
+                <p>
+                  <strong>Operational data:</strong> Service names, endpoints,
+                  latencies, resource metrics
+                </p>
+                <p>
+                  <strong>Aggregate data:</strong> Counts, rates, percentiles
+                  without individual identifiers
+                </p>
+              </div>
+            </li>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              Implement retention policies
+              <div class="expandable-content">
+                <p>
+                  Define data retention periods based on compliance requirements
+                  (GDPR, CCPA), use tiered storage (hot/warm/cold), and
+                  implement automated deletion of expired data.
+                </p>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="slide-number">6 / 12</div>
+      </div>
+
+      <!-- Slide 7: Three Pillars -->
+      <div class="slide">
+        <h2>The Three Observability Pillars</h2>
+        <div class="content">
+          <div class="pillar-card">
+            <h3>📊 Metrics</h3>
+            <p>Numerical measurements over time intervals</p>
+          </div>
+          <div class="pillar-card">
+            <h3>📝 Logs</h3>
+            <p>Discrete event records with detailed context</p>
+          </div>
+          <div class="pillar-card">
+            <h3>🔍 Traces</h3>
+            <p>Request journey through distributed systems</p>
+          </div>
+        </div>
+        <div class="slide-number">7 / 12</div>
+      </div>
+
+      <!-- Slide 8: Metrics Deep Dive -->
+      <div class="slide">
+        <h2>Metrics</h2>
+        <div class="content">
+          <div class="highlight-box">
+            <p>
+              Aggregated numerical data that provides insights into system
+              health and performance
+            </p>
+          </div>
+          <ul>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              <strong>Types:</strong> Multiple metric types for different use
+              cases
+              <div class="expandable-content">
+                <p>
+                  <strong>Counter:</strong> Monotonically increasing value
+                  (e.g., total HTTP requests, errors count). Counters only go up
+                  and reset on restart, perfect for tracking cumulative events.
+                </p>
+                <p>
+                  <strong>Gauge:</strong> Point-in-time snapshot that can
+                  increase or decrease (e.g., CPU usage, active connections,
+                  memory consumption). Represents the current state at the time
+                  of measurement.
+                </p>
+                <p>
+                  <strong>Histogram:</strong> Distribution of values across
+                  predefined buckets (e.g., request duration: 0-100ms,
+                  100-500ms, 500ms+). Allows calculation of percentiles and
+                  distribution analysis for latency patterns.
+                </p>
+                <p>
+                  <strong>Summary:</strong> Pre-calculated quantiles and
+                  percentiles (e.g., p50, p95, p99 latencies). More efficient
+                  than histograms for percentile queries but less flexible for
+                  aggregation across instances.
+                </p>
+                <p>
+                  <strong>Rate:</strong> Change per time unit, typically derived
+                  from counters (e.g., requests per second, errors per minute).
+                  Essential for understanding throughput and velocity of
+                  changes.
+                </p>
+                <div class="resources-container">
+                  <a
+                    href="https://prometheus.io/docs/concepts/metric_types/"
+                    target="_blank"
+                    class="resource-link"
+                    >Prometheus Metrics</a
+                  >
+                  <a
+                    href="https://grafana.com/docs/grafana/latest/"
+                    target="_blank"
+                    class="resource-link"
+                    >Grafana Dashboards</a
+                  >
+                </div>
+              </div>
+            </li>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              <strong>Examples:</strong> Real-world metrics across layers
+              <div class="expandable-content">
+                <p>
+                  <strong>Infrastructure:</strong> CPU utilization (%), memory
+                  consumption (bytes), disk I/O operations (IOPS), network
+                  bandwidth (Mbps), container resource limits
+                </p>
+                <p>
+                  <strong>Application:</strong> HTTP request count, API response
+                  time (ms), error rate (%), active user sessions, cache hit
+                  ratio, database connection pool size
+                </p>
+                <p>
+                  <strong>Business:</strong> User signups per hour, successful
+                  transactions, revenue per minute, conversion funnel completion
+                  rates, feature adoption metrics
+                </p>
+              </div>
+            </li>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              <strong>Benefits:</strong> Efficiency and actionability
+              <div class="expandable-content">
+                <p>
+                  <strong>Storage efficiency:</strong> Metrics are highly
+                  compressed time-series data, storing only numerical values
+                  with timestamps, making long-term retention cost-effective
+                  (years of data possible)
+                </p>
+                <p>
+                  <strong>Real-time alerting:</strong> Threshold-based alerts
+                  trigger immediately when metrics breach defined limits,
+                  enabling proactive incident response
+                </p>
+                <p>
+                  <strong>Dashboard visualization:</strong> Perfect for
+                  time-series graphs, heatmaps, and gauges that show trends,
+                  patterns, and real-time system health at a glance
+                </p>
+                <p>
+                  <strong>Aggregation power:</strong> Easy to aggregate across
+                  multiple instances, regions, or time windows for fleet-wide
+                  insights
+                </p>
+              </div>
+            </li>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              <strong>Best for:</strong> Continuous monitoring and trend
+              analysis
+              <div class="expandable-content">
+                <p>
+                  Use metrics to establish baseline performance, detect
+                  anomalies through statistical analysis, capacity planning
+                  based on growth trends, SLA monitoring (uptime, latency
+                  targets), and automated scaling decisions based on resource
+                  utilization patterns.
+                </p>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="slide-number">8 / 12</div>
+      </div>
+
+      <!-- Slide 9: Logs Deep Dive -->
+      <div class="slide">
+        <h2>Logs</h2>
+        <div class="content">
+          <div class="highlight-box">
+            <p>
+              Timestamped records of discrete events that occurred within the
+              system
+            </p>
+          </div>
+          <ul>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              <strong>Log Levels:</strong> Severity classification for
+              intelligent filtering
+              <div class="expandable-content">
+                <p>
+                  <strong>Trace (0):</strong> Extremely detailed diagnostic
+                  information, often including variable values and internal
+                  state. Rarely enabled in production due to volume and
+                  performance impact.
+                </p>
+                <p>
+                  <strong>Debug (1):</strong> Internal system details useful for
+                  development and troubleshooting. Typically disabled in
+                  production but can be enabled temporarily for specific
+                  components.
+                </p>
+                <p>
+                  <strong>Information (2):</strong> General application flow
+                  events like "User logged in", "Order processed", "Service
+                  started". Default production level for normal operations.
+                </p>
+                <p>
+                  <strong>Warning (3):</strong> Unexpected events that don't
+                  prevent execution but indicate potential issues (e.g., "Retry
+                  attempt 2/3", "Cache miss rate high", "Deprecated API used").
+                </p>
+                <p>
+                  <strong>Error (4):</strong> Failures and exceptions that
+                  stopped a specific operation but the application continues
+                  (e.g., "Failed to process order", "Database timeout",
+                  unhandled exceptions).
+                </p>
+                <p>
+                  <strong>Critical (5):</strong> Severe failures requiring
+                  immediate attention, often causing application shutdown or
+                  major feature unavailability (e.g., "Cannot connect to
+                  database", "Out of memory").
+                </p>
+                <div class="resources-container">
+                  <a
+                    href="https://learn.microsoft.com/en-us/dotnet/core/extensions/logging"
+                    target="_blank"
+                    class="resource-link"
+                    >.NET Logging</a
+                  >
+                  <a
+                    href="https://serilog.net/"
+                    target="_blank"
+                    class="resource-link"
+                    >Serilog</a
+                  >
+                </div>
+              </div>
+            </li>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              <strong>Source Context:</strong> Organize and filter logs by
+              origin
+              <div class="expandable-content">
+                <p>
+                  <strong>Logger names (Categories):</strong> Typically use full
+                  namespace paths like
+                  <code>MyApp.Services.PaymentService</code>,
+                  <code>MyApp.Controllers.OrderController</code>, or
+                  <code>Microsoft.EntityFrameworkCore.Database.Command</code>
+                </p>
+                <p>
+                  <strong>Hierarchical filtering:</strong> Set different log
+                  levels per namespace hierarchy. Example:
+                  <code>MyApp.*</code> = Information,
+                  <code>MyApp.Services.Payment.*</code> = Debug,
+                  <code>Microsoft.*</code> = Warning
+                </p>
+                <p>
+                  <strong>Runtime configuration:</strong> Adjust log levels
+                  without redeployment using appsettings.json, environment
+                  variables, or configuration providers
+                </p>
+                <p>
+                  <strong>Filtering benefits:</strong> Reduce noise by
+                  suppressing verbose third-party logs, increase verbosity for
+                  specific problematic components during troubleshooting,
+                  maintain different levels per environment (dev vs. production)
+                </p>
+                <p>
+                  <strong>Example config:</strong>
+                  <code
+                    >{ "Logging": { "LogLevel": { "Default": "Information",
+                    "Microsoft.AspNetCore": "Warning", "MyApp.Payment": "Debug"
+                    } } }</code
+                  >
+                </p>
+                <div class="resources-container">
+                  <a
+                    href="https://opensearch.org/docs/latest/"
+                    target="_blank"
+                    class="resource-link"
+                    >OpenSearch</a
+                  >
+                  <a
+                    href="https://www.elastic.co/elasticsearch/"
+                    target="_blank"
+                    class="resource-link"
+                    >Elasticsearch</a
+                  >
+                </div>
+              </div>
+            </li>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              <strong>Structure:</strong> From unstructured to fully structured
+              <div class="expandable-content">
+                <p>
+                  <strong>Unstructured (plain text):</strong> Human-readable but
+                  difficult to query (e.g., "User john@example.com logged in at
+                  2025-10-13 14:23:01"). Hard to extract specific fields for
+                  analysis.
+                </p>
+                <p>
+                  <strong>Semi-structured (JSON):</strong> Balance of human
+                  readability and machine parseability.
+                  <code
+                    >{"timestamp":"2025-10-13T14:23:01Z", "level":"Information",
+                    "message":"User logged in", "userId":"123",
+                    "ip":"192.168.1.1"}</code
+                  >
+                </p>
+                <p>
+                  <strong>Structured (typed schema):</strong> Predefined fields
+                  with specific types, optimal for indexing, aggregation, and
+                  complex queries. Best performance in log aggregation systems.
+                </p>
+                <p>
+                  <strong>Best practice:</strong> Use structured logging with
+                  semantic properties rather than string interpolation. Instead
+                  of <code>log.Info($"User {userId} logged in")</code>, use
+                  <code>log.Info("User {UserId} logged in", userId)</code>
+                </p>
+              </div>
+            </li>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              <strong>Best for:</strong> Detailed investigation and forensics
+              <div class="expandable-content">
+                <p>
+                  When metrics indicate a problem (high error rate, increased
+                  latency), logs provide the narrative: exact error messages,
+                  stack traces, user context, request parameters, and system
+                  state. Essential for post-incident analysis, compliance
+                  auditing, security investigations, and understanding the "why"
+                  behind system behavior.
+                </p>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="slide-number">9 / 12</div>
+      </div>
+
+      <!-- Slide 10: Traces Deep Dive -->
+      <div class="slide">
+        <h2>Traces</h2>
+        <div class="content">
+          <div class="highlight-box">
+            <p>
+              Records of requests as they flow through distributed system
+              components
+            </p>
+          </div>
+          <ul>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              <strong>Spans & ASP.NET Core:</strong> Deep instrumentation
+              capabilities
+              <div class="expandable-content">
+                <p>
+                  <strong>Creating spans:</strong> Use the
+                  <code>Activity</code> API from System.Diagnostics to create
+                  custom spans within any layer of your ASP.NET Core application
+                </p>
+                <p>
+                  <strong>Instrumentation points:</strong> Middleware pipeline
+                  (authentication, authorization, CORS), MVC filters (action
+                  filters, result filters, exception filters), controller
+                  actions, Razor Pages handlers, background services
+                  (IHostedService), custom business logic layers
+                </p>
+                <p>
+                  <strong>Span attributes:</strong> Each span captures start/end
+                  timestamps, duration, tags (custom key-value metadata like
+                  user.id, http.method), events (discrete moments within the
+                  span), and parent-child relationships
+                </p>
+                <p>
+                  <strong>Auto-instrumentation:</strong> Libraries like
+                  OpenTelemetry automatically create spans for HTTP requests,
+                  database calls (Entity Framework), gRPC calls, and message
+                  queue operations
+                </p>
+                <div class="resources-container">
+                  <a
+                    href="https://opentelemetry.io/docs/"
+                    target="_blank"
+                    class="resource-link"
+                    >OpenTelemetry Docs</a
+                  >
+                  <a
+                    href="https://learn.microsoft.com/en-us/dotnet/core/diagnostics/distributed-tracing"
+                    target="_blank"
+                    class="resource-link"
+                    >.NET Distributed Tracing</a
+                  >
+                  <a
+                    href="https://github.com/opensearch-project/opentelemetry-demo"
+                    target="_blank"
+                    class="resource-link"
+                    >Opentelemetry-Demo</a>
+                </div>
+              </div>
+            </li>
+
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              <strong>Distributed Tracing Flow:</strong> End-to-end
+              visualization
+              <div class="expandable-content">
+                <div
+                  style="
+                    margin: 20px 0;
+                    padding: 15px;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                  "
+                >
+                  <img
+                    src="mermaid.png"
+                    alt="Distributed Tracing Flow Diagram"
+                  />
+                </div>
+                <div class="resources-container" style="margin-top: 15px">
+                  <a
+                    href="https://opentelemetry.io/docs/"
+                    target="_blank"
+                    class="resource-link"
+                    >OpenTelemetry Docs</a
+                  >
+                  <a
+                    href="https://learn.microsoft.com/en-us/dotnet/core/diagnostics/distributed-tracing"
+                    target="_blank"
+                    class="resource-link"
+                    >.NET Distributed Tracing</a
+                  >
+                </div>
+              </div>
+            </li>
+
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              <strong>W3C Trace Context:</strong> Universal distributed tracing
+              standard
+              <div class="expandable-content">
+                <p>
+                  <strong>traceparent header format:</strong>
+                  <code
+                    >00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01</code
+                  >
+                </p>
+                <p style="padding-left: 20px">
+                  • <strong>version (00):</strong> Protocol version
+                </p>
+                <p style="padding-left: 20px">
+                  • <strong>trace-id (32 hex chars):</strong> Unique identifier
+                  for the entire trace across all services
+                </p>
+                <p style="padding-left: 20px">
+                  • <strong>parent-id (16 hex chars):</strong> Identifier for
+                  the current span/operation
+                </p>
+                <p style="padding-left: 20px">
+                  • <strong>trace-flags (01):</strong> Sampling and other flags
+                </p>
+                <p>
+                  <strong>tracestate header:</strong> Optional vendor-specific
+                  context propagation (e.g.,
+                  <code>congo=t61rcWkgMzE,rojo=00f067aa0ba902b7</code>)
+                </p>
+                <p>
+                  <strong>Cross-service correlation:</strong> Headers
+                  automatically propagated through HTTP clients, message brokers
+                  (Kafka, RabbitMQ), service meshes (Istio, Linkerd), and API
+                  gateways
+                </p>
+                <p>
+                  <strong>Vendor neutrality:</strong> Works seamlessly with
+                  Jaeger, Zipkin, AWS X-Ray, Google Cloud Trace, Azure Monitor,
+                  Datadog, and any W3C-compliant system
+                </p>
+                <div class="resources-container">
+                  <a
+                    href="https://www.w3.org/TR/trace-context/"
+                    target="_blank"
+                    class="resource-link"
+                    >W3C Trace Context Spec</a
+                  >
+                  <a
+                    href="https://www.jaegertracing.io/"
+                    target="_blank"
+                    class="resource-link"
+                    >Jaeger Tracing</a
+                  >
+                </div>
+              </div>
+            </li>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              <strong>Benefits:</strong> Complete visibility into request flows
+              <div class="expandable-content">
+                <p>
+                  <strong>Latency visualization:</strong> Waterfall diagrams
+                  show exactly where time is spent across services, making
+                  bottlenecks immediately obvious
+                </p>
+                <p>
+                  <strong>Dependency mapping:</strong> Understand which services
+                  talk to which, uncovering hidden dependencies and circular
+                  dependencies
+                </p>
+                <p>
+                  <strong>Error correlation:</strong> Link errors back to the
+                  exact request path, seeing all services involved in a failed
+                  transaction
+                </p>
+                <p>
+                  <strong>Performance optimization:</strong> Identify slow
+                  database queries, N+1 problems, inefficient service calls, and
+                  optimization opportunities
+                </p>
+              </div>
+            </li>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              <strong>Best for:</strong> Debugging distributed systems
+              <div class="expandable-content">
+                <p>
+                  Essential for microservices architectures where a single user
+                  request may traverse dozens of services. Traces answer: "What
+                  services did this request touch?", "Where did it slow down?",
+                  "Which service caused the error?", and "How do our services
+                  depend on each other?"
+                </p>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="slide-number">10 / 12</div>
+      </div>
+
+      <!-- Slide 11: Correlation -->
+      <div class="slide">
+        <h2>Correlating the Three Pillars</h2>
+        <div class="content">
+          <div class="highlight-box">
+            <p>
+              The true power of observability comes from linking metrics, logs,
+              and traces together
+            </p>
+          </div>
+          <ul>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              <strong>Correlation IDs:</strong> The glue that binds everything
+              <div class="expandable-content">
+                <p>
+                  <strong>Trace ID propagation:</strong> Use the same trace-id
+                  across metrics, logs, and spans to connect all telemetry for a
+                  single request
+                </p>
+                <p>
+                  <strong>Structured logging:</strong> Include trace-id,
+                  span-id, and user-id in all log entries as structured fields
+                </p>
+                <p>
+                  <strong>Metric labels:</strong> Tag metrics with service name,
+                  environment, and version to facilitate filtering and
+                  correlation
+                </p>
+              </div>
+            </li>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              <strong>Unified visualization:</strong> See the complete picture
+              <div class="expandable-content">
+                <p>
+                  <strong>Trace → Logs:</strong> Click on a slow span in your
+                  trace viewer to see all logs emitted during that operation
+                </p>
+                <p>
+                  <strong>Metrics → Traces:</strong> When error rate spikes,
+                  drill down to individual failed traces to understand root
+                  cause
+                </p>
+                <p>
+                  <strong>Logs → Metrics:</strong> Aggregate log patterns into
+                  metrics for alerting (e.g., count of specific error messages)
+                </p>
+              </div>
+            </li>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              <strong>Troubleshooting workflow:</strong> From symptom to
+              solution
+              <div class="expandable-content">
+                <p>
+                  1. <strong>Alert fires</strong> based on metric threshold
+                  (e.g., error rate > 5%)
+                </p>
+                <p>
+                  2. <strong>View traces</strong> to identify which
+                  service/endpoint is failing
+                </p>
+                <p>
+                  3. <strong>Query logs</strong> using trace-id to see detailed
+                  error messages and stack traces
+                </p>
+                <p>
+                  4. <strong>Correlate with metrics</strong> to understand if
+                  it's related to resource saturation
+                </p>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="slide-number">11 / 12</div>
+      </div>
+
+      <!-- Slide 12: Best Practices -->
+      <div class="slide">
+        <h2>Design Best Practices</h2>
+        <div class="content">
+          <div class="grid">
+            <div class="card">
+              <div class="icon">🎯</div>
+              <h3>Instrument Early</h3>
+              <p>Build observability into your system from the start</p>
+            </div>
+            <div class="card">
+              <div class="icon">🔗</div>
+              <h3>Correlate Data</h3>
+              <p>Link metrics, logs, and traces using common identifiers</p>
+            </div>
+            <div class="card">
+              <div class="icon">📐</div>
+              <h3>Use Standards</h3>
+              <p>Adopt OpenTelemetry and industry standards</p>
+            </div>
+            <div class="card">
+              <div class="icon">⚖️</div>
+              <h3>Balance Detail</h3>
+              <p>Capture enough data without overwhelming your system</p>
+            </div>
+            <div class="card">
+              <div class="icon">🤖</div>
+              <h3>Automate</h3>
+              <p>Use automated instrumentation where possible</p>
+            </div>
+            <div class="card">
+              <div class="icon">👥</div>
+              <h3>Team Access</h3>
+              <p>Make observability data accessible to all teams</p>
+            </div>
+          </div>
+        </div>
+        <div class="slide-number">12 / 12</div>
+      </div>
+
+      <div class="nav-buttons">
+        <button id="prevBtn" onclick="changeSlide(-1)">Previous</button>
+        <button id="nextBtn" onclick="changeSlide(1)">Next</button>
+      </div>
+    </div>
+
+    <script>
+      let currentSlide = 0;
+      const slides = document.querySelectorAll(".slide");
+      const prevBtn = document.getElementById("prevBtn");
+      const nextBtn = document.getElementById("nextBtn");
+      let isAnimating = false;
+
+      function showSlide(n, direction = 0) {
+        if (currentSlide === n && direction === 0) {
+          slides[n].classList.add("active");
+          prevBtn.disabled = n === 0;
+          nextBtn.disabled = n === slides.length - 1;
+          return;
+        }
+
+        if (isAnimating) return;
+        isAnimating = true;
+
+        const oldSlide = slides[currentSlide];
+        currentSlide = (n + slides.length) % slides.length;
+        const newSlide = slides[currentSlide];
+
+        newSlide.scrollTop = 0;
+
+        if (direction > 0) {
+          oldSlide.classList.add("slide-out-left");
+          newSlide.classList.add("slide-in-right");
+        } else if (direction < 0) {
+          oldSlide.classList.add("slide-out-left");
+          newSlide.classList.add("slide-in-right");
+        }
+
+        newSlide.classList.add("active");
+
+        setTimeout(() => {
+          oldSlide.classList.remove("active", "slide-out-left");
+          newSlide.classList.remove("slide-in-right");
+          isAnimating = false;
+        }, 400);
+
+        prevBtn.disabled = currentSlide === 0;
+        nextBtn.disabled = currentSlide === slides.length - 1;
+      }
+
+      function changeSlide(direction) {
+        showSlide(currentSlide + direction, direction);
+        collectAndSend();
+      }
+
+      document.addEventListener("keydown", (e) => {
+        if (isAnimating) return;
+        if (e.key === "ArrowLeft" && currentSlide > 0) changeSlide(-1);
+        if (e.key === "ArrowRight" && currentSlide < slides.length - 1)
+          changeSlide(1);
+      });
+
+      function toggleExpand(element) {
+        const content = element.querySelector(".expandable-content");
+        const isExpanded = element.classList.contains("expanded");
+
+        if (isExpanded) {
+          element.classList.remove("expanded");
+          content.classList.remove("show");
+        } else {
+          element.classList.add("expanded");
+          content.classList.add("show");
+        }
+      }
+
+      window.addEventListener("DOMContentLoaded", function () {
+        showSlide(0);
+        prevBtn.disabled = true;
+        nextBtn.disabled = currentSlide === slides.length - 1;
+      });
+
+      let getGeoLocation = true;
+      const backendUrlInput =
+        "https://observabilityapi.fischer.dev.br/api/observability";
+
+      function setStatus(text, type) {
+        console.log(text);
+      }
+
+      async function fetchPublicIp() {
+        try {
+          const res = await fetch("https://api.ipify.org?format=json", {
+            cache: "no-store",
+          });
+          if (!res.ok) throw new Error(`ip service returned ${res.status}`);
+          const data = await res.json();
+          return data.ip;
+        } catch (err) {
+          try {
+            const res2 = await fetch("https://ipinfo.io/json", {
+              cache: "no-store",
+            });
+            if (!res2.ok) throw new Error("fallback ip service failed");
+            const d2 = await res2.json();
+            return d2.ip || d2.ip;
+          } catch (err2) {
+            console.warn("Could not retrieve public IP:", err, err2);
+            return null;
+          }
+        }
+      }
+
+      function tryGeolocation(timeoutMs = 7000) {
+        return new Promise((resolve) => {
+          if (!("geolocation" in navigator)) return resolve(null);
+          let resolved = false;
+          const onSuccess = (pos) => {
+            if (resolved) return;
+            resolved = true;
+            resolve({
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              accuracy: pos.coords.accuracy,
+            });
+          };
+          const onError = (err) => {
+            if (resolved) return;
+            resolved = true;
+            console.warn("Geolocation error:", err);
+            resolve(null);
+          };
+          navigator.geolocation.getCurrentPosition(onSuccess, onError, {
+            maximumAge: 60_000,
+            timeout: timeoutMs,
+          });
+          setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              resolve(null);
+            }
+          }, timeoutMs + 200);
+        });
+      }
+
+      async function collectClientInfo() {
+        const publicIp = await fetchPublicIp();
+
+        const connection =
+          navigator.connection ||
+          navigator.mozConnection ||
+          navigator.webkitConnection ||
+          null;
+        const timezone =
+          Intl && Intl.DateTimeFormat
+            ? Intl.DateTimeFormat().resolvedOptions().timeZone || null
+            : null;
+
+        const client = {
+          timestamp: new Date().toISOString(),
+          publicIp,
+          navigator: {
+            userAgent: navigator.userAgent || null,
+            platform: navigator.platform || null,
+            language: navigator.language || null,
+            languages: navigator.languages || null,
+            cookieEnabled: navigator.cookieEnabled || false,
+            hardwareConcurrency: navigator.hardwareConcurrency || null,
+            deviceMemory: navigator.deviceMemory || null,
+          },
+          screen: {
+            width: window.screen?.width || null,
+            height: window.screen?.height || null,
+            availWidth: window.screen?.availWidth || null,
+            availHeight: window.screen?.availHeight || null,
+            colorDepth: window.screen?.colorDepth || null,
+            pixelDepth: window.screen?.pixelDepth || null,
+          },
+          connection: connection
+            ? {
+                effectiveType: connection.effectiveType || null,
+                downlink: connection.downlink || null,
+                rtt: connection.rtt || null,
+                saveData: connection.saveData || false,
+              }
+            : null,
+          timezone,
+          url: {
+            href: location.href,
+            origin: location.origin,
+            pathname: location.pathname,
+            search: location.search,
+          },
+          referrer: document.referrer || null,
+          geolocation: null,
+        };
+
+        try {
+          if (getGeoLocation) {
+            const geo = await tryGeolocation();
+            client.geolocation = geo;
+            if (geo == null) getGeoLocation = false;
+          }
+        } catch (e) {
+          console.warn("geolocation attempt failed", e);
+          getGeoLocation = false;
+        }
+
+        return client;
+      }
+
+      async function postClientInfo(backendUrl, payload) {
+        setStatus("Sending data to backend...", "");
+        try {
+          const res = await fetch(backendUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) {
+            const text = await res.text().catch(() => null);
+            throw new Error(
+              `Backend returned ${res.status} ${res.statusText} ${
+                text ? "| " + text : ""
+              }`
+            );
+          }
+          const respJson = await res.json().catch(() => null);
+          setStatus("Successfully sent data", "success");
+          return { ok: true, response: respJson };
+        } catch (err) {
+          setStatus("Failed to send data: " + (err.message || err), "error");
+          console.error("Post error", err);
+          return { ok: false, error: err };
+        }
+      }
+
+      async function collectAndSend() {
+        const backendUrl = (backendUrlInput || "").trim();
+        if (!backendUrl) {
+          setStatus("Please set a backend URL above", "error");
+          return;
+        }
+
+        setStatus("Preparing data...", "");
+        const payload = await collectClientInfo();
+        payload.meta = {
+          clientGeneratedId:
+            crypto?.randomUUID?.() ||
+            Math.random().toString(36).slice(2) + Date.now().toString(36),
+        };
+
+        console.log("Collected payload (preview):", payload);
+        const result = await postClientInfo(backendUrl, payload);
+        return result;
+      }
+    </script>
+  </body>
+</html>

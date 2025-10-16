@@ -1,0 +1,11 @@
+# data-prepper-config.yaml
+ssl: false
+keyStoreFilePath: ""
+keyStorePassword: ""
+privateKeyPassword: ""
+serverPort: 2021
+metricRegistries:
+  - Prometheus
+metricTags:
+  serviceName: "data-prepper"
+  serviceVersion: "2.0"

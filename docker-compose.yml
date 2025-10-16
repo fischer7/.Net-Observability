@@ -1,0 +1,78 @@
+networks:
+  otel-network:
+    driver: bridge
+
+services:
+  opensearch-plana:
+    image: opensearchproject/opensearch:latest
+    container_name: opensearch-plana
+    environment:
+      - discovery.type=single-node
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=PleaseChangeThisPassword2025!
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      - bootstrap.memory_lock=true
+      - plugins.security.disabled=false
+      - plugins.security.ssl.http.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    networks:
+      - otel-network
+
+  opensearch-dashboards-plana:
+    image: opensearchproject/opensearch-dashboards:latest
+    container_name: opensearch-dashboards-plana
+    ports:
+      - "5601:5601"
+    environment:
+      - OPENSEARCH_HOSTS=http://opensearch-plana:9200
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=false
+    depends_on:
+      - opensearch-plana
+    networks:
+      - otel-network
+
+  opentelemetry:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: opentelemetry
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+      - "8888:8888"   # Prometheus metrics
+      - "8889:8889"   # Prometheus exporter metrics
+    environment: 
+      # TODO: Change to WARN or ERROR for production
+      - OTEL_LOG_LEVEL=DEBUG  # More verbose logging for POC
+      
+    volumes:
+      - ./otel-config.yaml:/etc/otelcol/otel-config.yaml
+    command: ["--config=/etc/otelcol/otel-config.yaml"]
+    depends_on:
+      - data-prepper
+    networks:
+      - otel-network
+
+  data-prepper:
+    image: opensearchproject/data-prepper:2.12.1
+    container_name: data-prepper
+    ports:
+      - "2021:2021"   # Data Prepper server port
+      - "21890:21890" # OTLP gRPC receiver port
+      - "21891:21891" # OTLP HTTP receiver port (optional)
+    volumes:
+      - ./data-prepper/pipelines.yaml:/usr/share/data-prepper/pipelines/pipelines.yaml
+      - ./data-prepper/data-prepper-config.yaml:/usr/share/data-prepper/config/data-prepper-config.yaml
+      - ./data-prepper/log4j2.xml:/usr/share/data-prepper/config/log4j2.xml
+    depends_on:
+      - opensearch-plana
+    networks:
+      - otel-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:2021/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  opensearch_data:
