@@ -4,6 +4,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Serilog;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -91,6 +92,7 @@ app.MapGet("/weatherforecast", async () =>
         .ToArray();
     var httpClient = new HttpClient();
     var result = await httpClient.GetAsync("https://www.google.com.br");
+    result = await httpClient.GetAsync("https://www.microsoft.com");
 
     return forecast;
 })

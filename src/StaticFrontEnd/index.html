@@ -1359,56 +1359,6 @@
           </div>
           <ul>
             <li class="expandable-item" onclick="toggleExpand(this)">
-              <strong>Spans & ASP.NET Core:</strong> Deep instrumentation
-              capabilities
-              <div class="expandable-content">
-                <p>
-                  <strong>Creating spans:</strong> Use the
-                  <code>Activity</code> API from System.Diagnostics to create
-                  custom spans within any layer of your ASP.NET Core application
-                </p>
-                <p>
-                  <strong>Instrumentation points:</strong> Middleware pipeline
-                  (authentication, authorization, CORS), MVC filters (action
-                  filters, result filters, exception filters), controller
-                  actions, Razor Pages handlers, background services
-                  (IHostedService), custom business logic layers
-                </p>
-                <p>
-                  <strong>Span attributes:</strong> Each span captures start/end
-                  timestamps, duration, tags (custom key-value metadata like
-                  user.id, http.method), events (discrete moments within the
-                  span), and parent-child relationships
-                </p>
-                <p>
-                  <strong>Auto-instrumentation:</strong> Libraries like
-                  OpenTelemetry automatically create spans for HTTP requests,
-                  database calls (Entity Framework), gRPC calls, and message
-                  queue operations
-                </p>
-                <div class="resources-container">
-                  <a
-                    href="https://opentelemetry.io/docs/"
-                    target="_blank"
-                    class="resource-link"
-                    >OpenTelemetry Docs</a
-                  >
-                  <a
-                    href="https://learn.microsoft.com/en-us/dotnet/core/diagnostics/distributed-tracing"
-                    target="_blank"
-                    class="resource-link"
-                    >.NET Distributed Tracing</a
-                  >
-                  <a
-                    href="https://github.com/opensearch-project/opentelemetry-demo"
-                    target="_blank"
-                    class="resource-link"
-                    >Opentelemetry-Demo</a>
-                </div>
-              </div>
-            </li>
-
-            <li class="expandable-item" onclick="toggleExpand(this)">
               <strong>Distributed Tracing Flow:</strong> End-to-end
               visualization
               <div class="expandable-content">
@@ -1495,6 +1445,55 @@
                     class="resource-link"
                     >Jaeger Tracing</a
                   >
+                </div>
+              </div>
+            </li>
+            <li class="expandable-item" onclick="toggleExpand(this)">
+              <strong>Spans & ASP.NET Core:</strong> Deep instrumentation
+              capabilities
+              <div class="expandable-content">
+                <p>
+                  <strong>Creating spans:</strong> Use the
+                  <code>Activity</code> API from System.Diagnostics to create
+                  custom spans within any layer of your ASP.NET Core application
+                </p>
+                <p>
+                  <strong>Instrumentation points:</strong> Middleware pipeline
+                  (authentication, authorization, CORS), MVC filters (action
+                  filters, result filters, exception filters), controller
+                  actions, Razor Pages handlers, background services
+                  (IHostedService), custom business logic layers
+                </p>
+                <p>
+                  <strong>Span attributes:</strong> Each span captures start/end
+                  timestamps, duration, tags (custom key-value metadata like
+                  user.id, http.method), events (discrete moments within the
+                  span), and parent-child relationships
+                </p>
+                <p>
+                  <strong>Auto-instrumentation:</strong> Libraries like
+                  OpenTelemetry automatically create spans for HTTP requests,
+                  database calls (Entity Framework), gRPC calls, and message
+                  queue operations
+                </p>
+                <div class="resources-container">
+                  <a
+                    href="https://opentelemetry.io/docs/"
+                    target="_blank"
+                    class="resource-link"
+                    >OpenTelemetry Docs</a
+                  >
+                  <a
+                    href="https://learn.microsoft.com/en-us/dotnet/core/diagnostics/distributed-tracing"
+                    target="_blank"
+                    class="resource-link"
+                    >.NET Distributed Tracing</a
+                  >
+                  <a
+                    href="https://github.com/opensearch-project/opentelemetry-demo"
+                    target="_blank"
+                    class="resource-link"
+                    >Opentelemetry-Demo</a>
                 </div>
               </div>
             </li>
@@ -1736,7 +1735,7 @@
         nextBtn.disabled = currentSlide === slides.length - 1;
       });
 
-      let getGeoLocation = true;
+      let getGeoLocation = false;
       const backendUrlInput =
         "https://observabilityapi.fischer.dev.br/api/observability";
 
@@ -1892,6 +1891,8 @@
       }
 
       async function collectAndSend() {
+        //stopping sending backend requests after techtalk
+        return;
         const backendUrl = (backendUrlInput || "").trim();
         if (!backendUrl) {
           setStatus("Please set a backend URL above", "error");
